@@ -1,0 +1,12 @@
+.logo {
+  font-weight: 400;
+
+  a {
+    color: $inverse-font-color;
+
+    &:hover,
+    &:focus {
+      color: $light-inverse-font-color;
+    }
+  }
+}

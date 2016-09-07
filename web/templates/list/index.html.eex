@@ -1,0 +1,32 @@
+<div class="container">
+  <header class="table-header u-flex-row">
+    <h2 class="table-header-title">
+      All Lists
+    </h2>
+    <%= link(
+      gettext("New List"),
+      to: list_path(@conn, :new),
+      class: "button page-header-button"
+    ) %>
+  </header>
+
+  <table>
+   <thead>
+      <tr>
+        <th>List</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+  <%= for list <- @lists do %>
+      <tr>
+        <td><%= list.name %></td>
+
+        <td class="text-right">
+         <%= link "Delete", to: list_path(@conn, :delete, list), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+       </td>
+      </tr>
+  <% end %>
+    </tbody>
+  </table>
+</div>

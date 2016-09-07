@@ -1,0 +1,18 @@
+.card-header {
+  border-bottom: $base-border;
+  padding-bottom: $base-spacing;
+  margin-bottom: $base-spacing;
+}
+
+.card-header-title {
+  font-weight: 400;
+}
+
+.card {
+  @include margin(null auto);
+  background-color: $base-background-color;
+  border-radius: $base-border-radius;
+  box-shadow: $base-box-shadow;
+  max-width: 24em;
+  padding: $base-spacing;
+}

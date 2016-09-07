@@ -1,0 +1,30 @@
+<div class="container">
+  <header class="table-header u-flex-row">
+    <h3 class="table-header-title u-flex-1" data-role="list">
+      <%= @list.name %>
+    </h3>
+    <%= link(
+      gettext("Delete"),
+      to: list_path(@conn, :delete, @list),
+      method: :delete,
+      data: [
+        confirm: gettext("Are you sure?"),
+        role: "delete-tag",
+      ],
+      class: "button small-button danger-button",
+      form: [class: "u-inline"]
+    ) %>
+  </header>
+
+  <div class="sheet">
+    <ul class="association-cards">
+      <%= render(
+        "words.html",
+        word_changeset: word_changeset(@conn),
+        list: @list,
+        new_assigned_word: new_assigned_word,
+        words: words,
+        conn: @conn,
+      ) %>
+    </ul>
+</div>

@@ -1,0 +1,34 @@
+<div class="container">
+  <header class="table-header u-flex-row">
+    <h2 class="table-header-title">
+      Listing all words
+    </h2>
+    <%= link(
+      gettext("New Word"),
+      to: word_path(@conn, :new),
+      class: "button page-header-button"
+    ) %>
+  </header>
+
+  <table>
+   <thead>
+      <tr>
+        <th>Word</th>
+        <th>Word List</th>
+        <th></th>
+      </tr>
+    </thead>
+    <tbody>
+  <%= for word <- @words do %>
+      <tr>
+        <td><%= word.word %></td>
+       <td></td>
+
+        <td class="text-right">
+         <%= link "Delete", to: word_path(@conn, :delete, word), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+       </td>
+      </tr>
+  <% end %>
+    </tbody>
+  </table>
+</div>

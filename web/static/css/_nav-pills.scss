@@ -1,0 +1,39 @@
+.nav-pills {
+  display: flex;
+
+  li {
+    border: 1px solid $dark-green;
+    overflow: hidden;
+
+    &:not(:first-child) {
+      border-left: 0;
+    }
+
+    &:first-child {
+      @include border-left-radius($base-border-radius);
+    }
+
+    &:last-child {
+      @include border-right-radius($base-border-radius);
+    }
+  }
+
+  a {
+    color: $inverse-font-color;
+    display: block;
+    font-size: $small-font-size;
+    padding: $x-small-spacing $base-spacing;
+
+    &:active,
+    &:hover {
+      color: $light-inverse-font-color;
+    }
+  }
+}
+
+.arrival .arrivals-link,
+.hangtag .setup-link,
+.student .setup-link,
+.driver .setup-link {
+  background-color: rgba($dark-gray, 0.75);
+}

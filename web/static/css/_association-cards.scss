@@ -1,0 +1,47 @@
+.association-cards {
+  @include media($association-card-breakpoint) {
+    display: flex;
+    justify-content: space-between;
+  }
+}
+
+.association-card {
+  flex: 1;
+  margin-bottom: $base-spacing;
+
+  @include media($association-card-breakpoint) {
+    & + & {
+      @include margin(null null 0 $base-spacing);
+    }
+  }
+}
+
+.association-card-header {
+  @include border-top-radius($base-border-radius);
+  background-color: $secondary-background-color;
+  border: $dark-border;
+  padding: $small-spacing;
+}
+
+.association-card-title {
+  font-size: 1em;
+  font-weight: 600;
+}
+
+.association-card-cell {
+  border-left: $dark-border;
+  border-right: $dark-border;
+  border-bottom: $base-border;
+  padding: $small-spacing / 2;
+}
+
+.association-card-form-cell {
+  background-color: $light-blue;
+  border: $light-blue-border;
+  margin-top: -1px;
+  padding: $small-spacing;
+
+  &:last-child {
+    @include border-bottom-radius($base-border-radius);
+  }
+}

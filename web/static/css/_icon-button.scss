@@ -1,0 +1,18 @@
+.icon-button {
+  background: 0;
+  box-shadow: none;
+  color: $subdued-font-color;
+  padding: 0;
+
+  &:hover,
+  &:active,
+  &:focus {
+    background: transparent;
+    color: $base-font-color;
+  }
+
+  svg {
+    @include size(1em);
+    vertical-align: middle;
+  }
+}

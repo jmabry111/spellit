@@ -1,0 +1,12 @@
+.table-header {
+  @include border-top-radius($base-border-radius);
+  background-color: $base-background-color;
+  border-bottom: $base-border;
+  box-shadow: $base-box-shadow;
+  padding: $base-spacing;
+}
+
+.table-header-title {
+  font-size: $large-font-size;
+  font-weight: 400;
+}

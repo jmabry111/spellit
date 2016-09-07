@@ -1,0 +1,64 @@
+table {
+  @include border-bottom-radius($base-border-radius);
+  border-collapse: collapse;
+  box-shadow: $base-box-shadow;
+  margin: 0 0 $small-spacing;
+  width: 100%;
+
+  &.is-hidden {
+    display: none;
+  }
+}
+
+thead {
+  background-color: $secondary-background-color;
+}
+
+th {
+  border-bottom: $base-border;
+  font-weight: 600;
+  padding: 1em 0;
+  text-align: left;
+}
+
+tbody tr {
+  background-color: $base-background-color;
+
+  &:nth-child(even) {
+    background-color: $secondary-background-color;
+  }
+}
+
+td {
+  border-bottom: $base-border;
+  padding: $small-spacing 0;
+}
+
+tr,
+td,
+th {
+  vertical-align: middle;
+}
+
+td,
+th {
+  &:first-child {
+    padding-left: $base-spacing;
+  }
+
+  &:last-child {
+    padding-right: $base-spacing;
+  }
+}
+
+tr:last-child td {
+  border-bottom: 0;
+
+  &:first-child {
+    border-bottom-left-radius: $base-border-radius;
+  }
+
+  &:last-child {
+    border-bottom-right-radius: $base-border-radius;
+  }
+}

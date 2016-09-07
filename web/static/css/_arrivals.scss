@@ -1,0 +1,13 @@
+.arrival-hangtag {
+  width: 10em;
+}
+
+.arrival-cell {
+  vertical-align: baseline;
+}
+
+.arrival-student {
+  &:not(:last-child) {
+    margin-bottom: $x-small-spacing;
+  }
+}

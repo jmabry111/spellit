@@ -1,0 +1,8 @@
+.inline-form {
+  display: flex;
+}
+
+.inline-form-input {
+  @include margin(null $small-spacing 0 null);
+  flex: 1;
+}

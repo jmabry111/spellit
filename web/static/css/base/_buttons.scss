@@ -1,0 +1,74 @@
+.button,
+#{$all-buttons} {
+  appearance: none;
+  background-color: $action-color;
+  border: 0;
+  border-radius: $base-border-radius;
+  box-shadow: $base-box-shadow;
+  color: $inverse-font-color;
+  cursor: pointer;
+  display: inline-block;
+  font-family: $base-font-family;
+  font-size: $base-font-size;
+  -webkit-font-smoothing: antialiased;
+  font-weight: 600;
+  line-height: 1;
+  padding: $small-spacing $base-spacing;
+  text-decoration: none;
+  transition: background-color $base-duration $base-timing;
+  user-select: none;
+  vertical-align: middle;
+  white-space: nowrap;
+
+  &:hover,
+  &:focus {
+    background-color: tint($action-color, 10%);
+    color: $inverse-font-color;
+  }
+
+  &:active {
+    box-shadow: 0;
+  }
+
+  &:disabled {
+    cursor: not-allowed;
+    opacity: 0.5;
+
+    &:hover {
+      background-color: $action-color;
+    }
+  }
+}
+
+.small-button {
+  font-size: $small-font-size;
+  padding: $small-spacing $base-spacing;
+}
+
+.danger-button {
+  background-color: transparent;
+  box-shadow: none;
+  color: $light-font-color;
+
+  &:hover,
+  &:focus {
+    background-color: transparent;
+    color: $danger-color;
+  }
+
+  &:active {
+    background-color: tint($danger-color, 80%);
+  }
+}
+
+.block-button {
+  display: block;
+  width: 100%;
+}
+
+.secondary-button {
+  background-color: $base-border-color;
+  box-shadow: none;
+  color: $light-font-color;
+  transition: color $base-transition, background-color $base-transition;
+}

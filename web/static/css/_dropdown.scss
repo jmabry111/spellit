@@ -1,0 +1,69 @@
+.dropdown-wrapper {
+  display: inherit;
+  position: relative;
+}
+
+.dropdown-button {
+  background: none;
+  box-shadow: none;
+  color: $inverse-font-color;
+  margin-left: $base-spacing;
+  padding: 0;
+
+  &:hover,
+  &:focus {
+    background: none;
+    box-shadow: none;
+    color: $light-inverse-font-color;
+    outline: none;
+  }
+
+  &::after {
+    @include triangle($direction: "down", $width: $small-spacing);
+    content: "";
+    display: inline-block;
+    margin-left: $x-small-spacing;
+  }
+
+  svg {
+    @include size(1em);
+    vertical-align: middle;
+  }
+}
+
+.dropdown {
+  @include padding(0.25em null);
+  @include position(absolute, 100% 0 null null);
+  background-color: $base-background-color;
+  border-radius: $base-border-radius;
+  box-shadow: $base-box-shadow;
+  display: none;
+  margin-top: $x-small-spacing;
+  width: 12em;
+  z-index: 1;
+
+  &.is-open {
+    display: block;
+  }
+}
+
+.dropdown-item {
+  @include ellipsis;
+  color: $base-font-color;
+  display: block;
+  font-size: $small-font-size;
+  padding: 0.5em 1em;
+  transition: none;
+
+  &:hover,
+  &:focus {
+    background-color: $action-color;
+    color: $inverse-font-color;
+  }
+}
+
+.dropdown-divider {
+  @include margin(0.25em null);
+  background-color: $base-border-color;
+  height: 1px;
+}

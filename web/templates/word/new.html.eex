@@ -1,0 +1,13 @@
+<div class="container">
+  <div class="card">
+    <header class="card-header">
+      <h2 class="card-header-title">New word</h2>
+    </header>
+    <%= render(
+      "form.html",
+      changeset: @changeset,
+      action: word_path(@conn, :create),
+      add_another: true,
+    ) %>
+  </div>
+</div>

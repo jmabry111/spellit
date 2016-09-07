@@ -1,0 +1,40 @@
+<li class="association-card" data-role="words">
+  <header class="association-card-header">
+    <h4 class="association-card-title"><%= gettext("Words") %></h4>
+  </header>
+
+  <%= for assigned_word <- @list.assigned_words do %>
+    <div class="association-card-cell u-flex-row" data-role="word">
+      <%= assigned_word.word.word %>
+      <%= button "Remove",
+        to: list_assigned_word_path(@conn, :delete, @list, assigned_word),
+        method: :delete,
+        class: "icon-button",
+        data: [confirm: gettext("Are you sure?"), role: "remove-word"]
+      %>
+    </div>
+  <% end %>
+  
+  <div class="association-card-form-cell">
+    <label class="association-card-label">
+      <%= gettext("Search for a word to add") %>
+    </label>
+    <%= form_for @new_assigned_word, list_assigned_word_path(@conn, :create, @list), fn form -> %>
+      <%= auto_submit_selectize form, :word_id, @words %>
+    <% end %>
+  </div>
+  
+  <div class="association-card-form-cell">
+    <label class="association-card-label">
+      <%= gettext("Or enter a new word") %>
+    </label>
+    <%= render(
+      Spellit.WordView,
+      "form.html",
+      changeset: @word_changeset,
+      action: list_assigned_word_path(@conn, :create, @list),
+      add_another: false,
+      submit_text: gettext("Save Word"),
+    ) %>
+  </div>
+</li>

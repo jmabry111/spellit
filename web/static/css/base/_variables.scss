@@ -1,0 +1,72 @@
+// Breakpoints
+$medium-screen: 600px;
+$large-screen: 900px;
+$association-card-breakpoint: $medium-screen;
+
+// Typography
+$base-font-family: $font-stack-system;
+$heading-font-family: $base-font-family;
+
+// Font Sizes
+$x-large-font-size: 1.5em;
+$large-font-size: 1.125em;
+$base-font-size: 1em;
+$small-font-size: 0.875em;
+
+// Line height
+$base-line-height: 1.5;
+$heading-line-height: 1.2;
+
+// Other Sizes
+$base-border-radius: 3px;
+$base-spacing: $base-line-height * 1em;
+$large-spacing: $base-spacing * 2;
+$small-spacing: $base-spacing / 2;
+$x-small-spacing: $small-spacing / 2;
+$base-z-index: 0;
+$bar-height: 4em;
+
+// Colors
+$blue: #b0d0d3;
+$dark-gray: #273043;
+$dark-green: #587b7f;
+$green: #20bf55;
+$light-gray: #9197ae;
+$light-blue: #c3dfe0;
+$medium-gray: #738290;
+$off-white: #eee;
+$purple: #9b59b6;
+$red: #dd0426;
+$white: #eff6ee;
+$yellow: #cff27e;
+
+// Font Colors
+$base-font-color: $dark-gray;
+$light-font-color: rgba($base-font-color, 0.75);
+$subdued-font-color: rgba($light-font-color, 0.5);
+$action-color: $blue;
+$inverse-font-color: $white;
+$light-inverse-font-color: rgba($inverse-font-color, 0.75);
+$danger-color: $red;
+
+// Border
+$base-border-color: $off-white;
+$base-border: 1px solid $base-border-color;
+$dark-border-color: $light-gray;
+$dark-border: 1px solid $dark-border-color;
+$inverse-border-color: rgba($white, 0.25);
+$inverse-border: 1px solid $inverse-border-color;
+$light-blue-border-color: #c9e6f2;
+$light-blue-border: 1px solid $light-blue-border-color;
+
+// Background Colors
+$base-background-color: tint($white, 25%);
+$secondary-background-color: tint($off-white, 75%);
+
+// Box shadows
+$base-box-shadow: 0 2px 4px rgba($base-font-color, 0.2);
+
+// Animations
+$base-duration: 150ms;
+$base-timing: ease;
+$base-transition: $base-duration $base-timing;

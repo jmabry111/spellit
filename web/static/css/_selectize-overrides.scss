@@ -1,0 +1,22 @@
+.selectize-dropdown,
+.selectize-input,
+.selectize-input input {
+  font-size: $base-font-size;
+}
+
+.selectize-input {
+  box-shadow: none;
+  border-color: $base-border-color;
+
+  &:hover {
+    border-color: shade($base-border-color, 20%);
+  }
+
+  &.focus {
+    border-color: $action-color;
+  }
+}
+
+.selectize-dropdown {
+  border-color: $action-color;
+}

@@ -1,0 +1,20 @@
+.empty-state {
+  @include border-bottom-radius($base-border-radius);
+  background-color: $base-background-color;
+  box-shadow: $base-box-shadow;
+  padding: $large-spacing;
+  text-align: center;
+}
+
+.empty-state-icon {
+  margin-bottom: $base-spacing;
+  width: 100%;
+}
+
+.empty-state-title {
+  margin-bottom: $small-spacing;
+}
+
+.empty-state-description {
+  color: $light-font-color;
+}

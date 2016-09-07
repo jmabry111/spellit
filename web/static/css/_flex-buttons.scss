@@ -1,0 +1,9 @@
+.flex-buttons {
+  display: flex;
+}
+
+.flex-button {
+  & + & {
+    margin-left: $small-spacing;
+  }
+}

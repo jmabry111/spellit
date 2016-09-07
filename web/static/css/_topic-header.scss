@@ -1,0 +1,50 @@
+.topic-header {
+  background-color: $dark-green;
+  box-shadow: inset $base-box-shadow;
+  margin-bottom: $large-spacing;
+}
+
+.topic-header-title {
+  @include padding($small-spacing null);
+  color: $inverse-font-color;
+  font-size: $x-large-font-size;
+  font-weight: 600;
+}
+
+.topic-header-nav {
+  border-top: $inverse-border;
+}
+
+.topic-header-nav-item {
+  display: inline-block;
+  margin-right: $base-spacing;
+}
+
+.topic-header-nav-link {
+  @include padding($small-spacing null);
+  color: $light-inverse-font-color;
+  display: block;
+  position: relative;
+
+  &:hover,
+  &:focus {
+    color: $inverse-font-color;
+  }
+}
+
+.arrival-new .lookout-link,
+.arrival-index .announcer-link,
+.hangtag .hangtags-link,
+.student .students-link,
+.arrival .arrivals-link,
+.driver .drivers-link {
+  color: $inverse-font-color;
+
+  &::after {
+    $width: 0.75em;
+    @include position(absolute, null null 0 50%);
+    @include triangle($color: $off-white, $width: $width);
+    content: "";
+    margin-left: -($width / 2);
+  }
+}
