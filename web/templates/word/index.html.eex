@@ -14,7 +14,6 @@
    <thead>
       <tr>
         <th>Word</th>
-        <th>Word List</th>
         <th></th>
       </tr>
     </thead>
@@ -22,7 +21,6 @@
   <%= for word <- @words do %>
       <tr>
         <td><%= word.word %></td>
-       <td></td>
 
         <td class="text-right">
          <%= link "Delete", to: word_path(@conn, :delete, word), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
