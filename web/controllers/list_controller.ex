@@ -4,7 +4,9 @@ defmodule Spellit.ListController do
   alias Spellit.List
 
   def index(conn, _params) do
-    lists = Repo.all(List)
+    lists = List
+    |> Repo.all
+    |> Repo.preload([:words])
     conn
     |> render(:index, lists: lists)
   end

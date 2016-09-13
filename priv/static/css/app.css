@@ -1485,6 +1485,11 @@ hr {
     content: "";
     margin-left: -0.375em; }
 
+/* line 1, /Users/jasonmabry/phoenix/spellit/web/static/css/_index-list.scss */
+.index-list-words {
+  font-size: 0.75em;
+  margin-left: 20px; }
+
 /* line 1, /Users/jasonmabry/phoenix/spellit/web/static/css/_selectize-overrides.scss */
 .selectize-dropdown,
 .selectize-input,

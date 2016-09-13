@@ -20,8 +20,14 @@
     <tbody>
   <%= for list <- @lists do %>
       <tr>
-        <td><%= link(list.name, to: list_path(@conn, :show, list)) %></td>
-
+        <td>
+          <%= link(list.name, to: list_path(@conn, :show, list)) %><br />
+          <span class="index-list-words">
+            <%= for word <- list.words do %>
+              <%= word.word %>&nbsp;&nbsp;&nbsp;
+            <% end %>
+          </span>
+        </td>
         <td class="text-right">
          <%= link "Delete", to: list_path(@conn, :delete, list), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
        </td>
