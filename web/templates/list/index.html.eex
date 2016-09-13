@@ -28,8 +28,19 @@
             <% end %>
           </span>
         </td>
-        <td class="text-right">
-         <%= link "Delete", to: list_path(@conn, :delete, list), method: :delete, data: [confirm: "Are you sure?"], class: "btn btn-danger btn-xs" %>
+        <td class="u-align-right">
+         <%= link(
+              gettext("Edit"),
+              to: list_path(@conn, :edit, list),
+              class: "button small-button secondary-button"
+         ) %>
+         <%= link(
+              gettext("Delete"),
+              to: list_path(@conn, :delete, list),
+              method: :delete,
+              data: [confirm: "Are you sure?"],
+              class: "button small-button danger-button"
+         ) %>
        </td>
       </tr>
   <% end %>

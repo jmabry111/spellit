@@ -38,6 +38,28 @@ defmodule Spellit.ListController do
     |> render(:show)
   end
 
+  def edit(conn, %{"id" => id}) do
+    list = Repo.get!(List, id)
+    changeset = List.changeset(list)
+    conn
+    |> render(:edit, list: list, changeset: changeset)
+  end
+
+  def update(conn, %{"id" => id, "list" => list_params}) do
+    list = Repo.get!(List, id)
+    changeset = List.changeset(list, list_params)
+    
+    case Repo.update(changeset) do
+      {:ok, list} ->
+        conn
+        |> put_flash(:info, gettext("List name updated."))
+        |> redirect(to: list_path(conn, :show, list))
+      {:error, changeset} ->
+        conn
+        |> render(:edit, list: list, changeset: changeset)
+    end
+  end
+
   def delete(conn, %{"id" => id}) do
     list = Repo.get!(List, id)
     Repo.delete!(list)
