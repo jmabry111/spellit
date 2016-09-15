@@ -4,7 +4,7 @@ defmodule Spellit.WordController do
 
   def index(conn, _params) do
     words = Repo.all(Word)
-    render(conn, "index.html", words: words)
+    render conn, :index, words: words
   end
   
   def new(conn, _params) do

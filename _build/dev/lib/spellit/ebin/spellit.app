@@ -16,9 +16,12 @@
                         'Elixir.Spellit.Router.Helpers',
                         'Elixir.Spellit.SharedView',
                         'Elixir.Spellit.UserSocket','Elixir.Spellit.Web',
-                        'Elixir.Spellit.Word','Elixir.Spellit.WordController',
+                        'Elixir.Spellit.Word',
+                        'Elixir.Spellit.WordApiController',
+                        'Elixir.Spellit.WordApiView',
+                        'Elixir.Spellit.WordController',
                         'Elixir.Spellit.WordView']},
               {mod,{'Elixir.Spellit',[]}},
-              {applications,[kernel,stdlib,elixir,cowboy,gettext,logger,
-                             phoenix,phoenix_ecto,phoenix_html,phoenix_pubsub,
-                             phoenix_ecto,postgrex]}]}.
+              {applications,[kernel,stdlib,elixir,cowboy,ex_machina,gettext,
+                             logger,phoenix,phoenix_ecto,phoenix_html,
+                             phoenix_pubsub,phoenix_ecto,postgrex]}]}.

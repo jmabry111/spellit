@@ -15014,8 +15014,8 @@ exports.default = socket;
 
 ;require.alias("jquery/dist/jquery.js", "jquery");
 require.alias("phoenix_html/priv/static/phoenix_html.js", "phoenix_html");
-require.alias("selectize/dist/js/selectize.js", "selectize");
 require.alias("phoenix/priv/static/phoenix.js", "phoenix");
+require.alias("selectize/dist/js/selectize.js", "selectize");
 require.alias("sifter/sifter.js", "sifter");
 require.alias("microplugin/src/microplugin.js", "microplugin");require.register("___globals___", function(exports, require, module) {
   

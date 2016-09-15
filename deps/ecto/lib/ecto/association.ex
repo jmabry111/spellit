@@ -313,6 +313,7 @@ defmodule Ecto.Association.Has do
   @behaviour Ecto.Association
   @on_delete_opts [:nothing, :nilify_all, :delete_all]
   @on_replace_opts [:raise, :mark_as_invalid, :delete, :nilify]
+  @has_one_on_replace_opts [:update]
   defstruct [:cardinality, :field, :owner, :related, :owner_key, :related_key, :on_cast,
              :queryable, :on_delete, :on_replace, defaults: [], relationship: :child]
 
@@ -335,6 +336,7 @@ defmodule Ecto.Association.Has do
     end
 
     queryable = Keyword.fetch!(opts, :queryable)
+    cardinality = Keyword.fetch!(opts, :cardinality)
     related = Ecto.Association.related_from_query(queryable)
 
     if opts[:through] do
@@ -343,15 +345,20 @@ defmodule Ecto.Association.Has do
     end
 
     on_delete  = Keyword.get(opts, :on_delete, :nothing)
-    on_replace = Keyword.get(opts, :on_replace, :raise)
-
     unless on_delete in @on_delete_opts do
       raise ArgumentError, "invalid :on_delete option for #{inspect name}. " <>
         "The only valid options are: " <>
         Enum.map_join(@on_delete_opts, ", ", &"`#{inspect &1}`")
     end
 
-    unless on_replace in @on_replace_opts do
+    on_replace = Keyword.get(opts, :on_replace, :raise)
+    on_replace_opts = if cardinality == :one do
+      @on_replace_opts ++ @has_one_on_replace_opts
+    else
+      @on_replace_opts
+    end
+
+    unless on_replace in on_replace_opts do
       raise ArgumentError, "invalid `:on_replace` option for #{inspect name}. " <>
         "The only valid options are: " <>
         Enum.map_join(@on_replace_opts, ", ", &"`#{inspect &1}`")
@@ -359,7 +366,7 @@ defmodule Ecto.Association.Has do
 
     %__MODULE__{
       field: name,
-      cardinality: Keyword.fetch!(opts, :cardinality),
+      cardinality: cardinality,
       owner: module,
       related: related,
       owner_key: ref,
@@ -385,6 +392,12 @@ defmodule Ecto.Association.Has do
     from o in owner,
       join: q in ^queryable,
       on: field(q, ^related_key) == field(o, ^owner_key)
+  end
+
+  @doc false
+  def assoc_query(%{queryable: queryable, related_key: related_key}, query, [value]) do
+    from x in (query || queryable),
+      where: field(x, ^related_key) == ^value
   end
 
   @doc false
@@ -672,7 +685,7 @@ defmodule Ecto.Association.BelongsTo do
   """
 
   @behaviour Ecto.Association
-  @on_replace_opts [:raise, :mark_as_invalid, :delete, :nilify]
+  @on_replace_opts [:raise, :mark_as_invalid, :delete, :nilify, :update]
   defstruct [:field, :owner, :related, :owner_key, :related_key, :queryable, :on_cast,
              :on_replace, defaults: [], cardinality: :one, relationship: :parent]
 
@@ -719,6 +732,12 @@ defmodule Ecto.Association.BelongsTo do
     from o in owner,
       join: q in ^queryable,
       on: field(q, ^related_key) == field(o, ^owner_key)
+  end
+
+  @doc false
+  def assoc_query(%{queryable: queryable, related_key: related_key}, query, [value]) do
+    from x in (query || queryable),
+      where: field(x, ^related_key) == ^value
   end
 
   @doc false

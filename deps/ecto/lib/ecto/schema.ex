@@ -595,6 +595,7 @@ defmodule Ecto.Schema do
 
   """
   defmacro has_many(name, queryable, opts \\ []) do
+    queryable = expand_alias(queryable, __CALLER__)
     quote do
       Ecto.Schema.__has_many__(__MODULE__, unquote(name), unquote(queryable), unquote(opts))
     end
@@ -651,6 +652,7 @@ defmodule Ecto.Schema do
 
   """
   defmacro has_one(name, queryable, opts \\ []) do
+    queryable = expand_alias(queryable, __CALLER__)
     quote do
       Ecto.Schema.__has_one__(__MODULE__, unquote(name), unquote(queryable), unquote(opts))
     end
@@ -725,7 +727,7 @@ defmodule Ecto.Schema do
   the database. You can't use foreign keys and it is very inefficient,
   both in terms of query time and storage.
 
-  In Ecto, we have two ways to solve this issue. The simplest
+  In Ecto, we have three ways to solve this issue. The simplest
   is to define multiple fields in the Comment schema, one for each
   association:
 
@@ -792,14 +794,44 @@ defmodule Ecto.Schema do
       # Fetch all comments associated to the given task
       Repo.all(assoc(task, :comments))
 
-  Finally, if for some reason you wish to query one of comments
-  tables directly, you can also specify the tuple source in
-  the query syntax:
+  Or all comments in a given table:
 
       Repo.all from(c in {"posts_comments", Comment}), ...)
 
+  The third and final option is to use `many_to_many/3` to
+  define the relationships between the resources. In this case,
+  the comments table won't have the foreign key, instead there
+  is a intermediary table responsible for associating the entries:
+  
+      defmodule Comment do
+        use Ecto.Schema
+        schema "comments" do
+          # ...
+        end
+      end
+  
+  In your posts and tasks:
+  
+      defmodule Post do
+        use Ecto.Schema
+
+        schema "posts" do
+          many_to_many :comments, Comment, join_through: "posts_comments"
+        end
+      end
+
+      defmodule Task do
+        use Ecto.Schema
+
+        schema "tasks" do
+          many_to_many :comments, Comment, join_through: "tasks_comments"
+        end
+      end
+
+  See `many_to_many/3` for more information on this particular approach.
   """
   defmacro belongs_to(name, queryable, opts \\ []) do
+    queryable = expand_alias(queryable, __CALLER__)
     quote do
       Ecto.Schema.__belongs_to__(__MODULE__, unquote(name), unquote(queryable), unquote(opts))
     end
@@ -857,11 +889,11 @@ defmodule Ecto.Schema do
 
   ## Removing data
 
-  If you attempt to remove associated `many_to_many` data, be it by
-  setting `:on_replace` to `:delete`, `:on_delete` to `:delete_all`
-  or by using `Ecto.Changeset.put_assoc/3` and `Ecto.Changeset.cast_assoc/3`,
-  **Ecto will always remove data from the join schema and never from
-  the target associations**. For example, if a `Post` has a many to many
+  If you attempt to remove associated `many_to_many` data, **Ecto will
+  always remove data from the join schema and never from the target
+  associations** be it by setting `:on_replace` to `:delete`, `:on_delete`
+  to `:delete_all` or by using changeset functions such as
+  `Ecto.Changeset.put_assoc/3`. For example, if a `Post` has a many to many
   relationship with `Tag`, setting `:on_delete` to `:delete_all` will
   only delete entries from the "posts_tags" table in case `Post` is
   deleted.
@@ -900,14 +932,75 @@ defmodule Ecto.Schema do
         end
       end
 
-      # Get all tags for a given post
-      post = Repo.get(Post, 42)
-      tags = Repo.all assoc(post, :tags)
+      # Let's create a post and a tag
+      post = Repo.insert!(%Post{})
+      tag = Repo.insert!(%Tag{name: "introduction"})
 
-      # The tags can come preloaded on the post struct
+      # We can associate at any time post and tags together using changesets
+      post
+      |> Repo.preload(:tags) # Load existing data
+      |> Ecto.Changeset.change() # Build the changeset
+      |> Ecto.Changeset.put_assoc(:tags, [tag]) # Set the association
+      |> Repo.update!
+
+      # In a later moment, we may get all tags for a given post
+      post = Repo.get(Post, 42)
+      tags = Repo.all(assoc(post, :tags))
+
+      # The tags may also be preloaded on the post struct for reading
       [post] = Repo.all(from(p in Post, where: p.id == 42, preload: :tags))
       post.tags #=> [%Tag{...}, ...]
 
+  ## Join Schema Example
+
+  You may prefer to use a join schema to handle many_to_many associations. The
+  decoupled nature of Ecto allows us to create a "join" struct which 
+  `belongs_to` both sides of the many to many association.
+
+  In our example, a User has and belongs to many Organizations
+
+      defmodule UserOrganization do
+        use Ecto.Schema
+
+        @primary_key false
+        schema "user_organisation" do
+          belongs_to :user, User
+          belongs_to :organization, Organization
+          timestamps # Added bonus, a join schema will also allow you to set timestamps
+        end
+
+        def changeset(struct, params \\ %{}) do
+          struct
+          |> cast(params, [:user_id, :organization_id])
+          |> validate_required([:user_id, :organization_id])
+          # Maybe do some counter caching here!
+        end
+      end
+
+      defmodule User do
+        use Ecto.Schema
+
+        schema "users" do
+          many_to_many :organizations, join_through: UserOrganization
+        end
+      end
+
+      defmodule Organization do
+        use Ecto.Schema
+
+        schema "organizations" do
+          many_to_many :users, join_through: UserOrganization
+        end
+      end
+
+      # Then to create the association, pass in the ID's of an existing
+      # User and Organization to UserOrganization.changeset
+      changeset = UserOrganization.changeset(%UserOrganization{}, %{user_id: id, organization_id: id})
+
+      case Repo.insert(changeset) do
+        {:ok, assoc} -> # Assoc was created!
+        {:error, changeset} -> # Handle the error
+      end
   """
   defmacro many_to_many(name, queryable, opts \\ []) do
     quote do
@@ -986,6 +1079,7 @@ defmodule Ecto.Schema do
   Ecto provides this guarantee for all built-in types.
   """
   defmacro embeds_one(name, schema, opts \\ []) do
+    schema = expand_alias(schema, __CALLER__)
     quote do
       Ecto.Schema.__embeds_one__(__MODULE__, unquote(name), unquote(schema), unquote(opts))
     end
@@ -1051,6 +1145,7 @@ defmodule Ecto.Schema do
 
   """
   defmacro embeds_many(name, schema, opts \\ []) do
+    schema = expand_alias(schema, __CALLER__)
     quote do
       Ecto.Schema.__embeds_many__(__MODULE__, unquote(name), unquote(schema), unquote(opts))
     end
@@ -1077,7 +1172,7 @@ defmodule Ecto.Schema do
     Enum.reduce(types, struct, fn
       {field, type}, acc ->
         case Map.fetch(map, Atom.to_string(field)) do
-          {:ok, value} -> Map.put(acc, field, load!(struct, type, value, loader))
+          {:ok, value} -> Map.put(acc, field, load!(struct, field, type, value, loader))
           :error -> acc
         end
     end)
@@ -1090,7 +1185,7 @@ defmodule Ecto.Schema do
   defp do_load([field|fields], [value|values], struct, types, loader) do
     case Map.fetch(types, field) do
       {:ok, type} ->
-        value = load!(struct, type, value, loader)
+        value = load!(struct, field, type, value, loader)
         do_load(fields, values, Map.put(struct, field, value), types, loader)
       :error ->
         raise ArgumentError, "unknown field `#{field}` for struct #{inspect struct.__struct__}"
@@ -1099,10 +1194,10 @@ defmodule Ecto.Schema do
 
   defp do_load([], [], struct, _types, _loader), do: struct
 
-  defp load!(struct, type, value, loader) do
+  defp load!(struct, field, type, value, loader) do
     case loader.(type, value) do
       {:ok, value} -> value
-      :error -> raise ArgumentError, "cannot load `#{inspect value}` as type #{inspect type} in schema #{inspect struct.__struct__}"
+      :error -> raise ArgumentError, "cannot load `#{inspect value}` as type #{inspect type} for #{inspect field} in schema #{inspect struct.__struct__}"
     end
   end
 
@@ -1447,4 +1542,9 @@ defmodule Ecto.Schema do
   defp default_for_type(_, opts) do
     Keyword.get(opts, :default)
   end
+
+  defp expand_alias({:__aliases__, _, _} = ast, env),
+    do: Macro.expand(ast, %{env | lexical_tracker: nil})
+  defp expand_alias(ast, _env),
+    do: ast
 end

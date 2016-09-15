@@ -24,6 +24,7 @@ defmodule Spellit.ConnCase do
       import Ecto
       import Ecto.Changeset
       import Ecto.Query, only: [from: 1, from: 2]
+      import Spellit.Factory
 
       import Spellit.Router.Helpers
 
@@ -33,8 +34,10 @@ defmodule Spellit.ConnCase do
   end
 
   setup tags do
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Spellit.Repo)
+
     unless tags[:async] do
-      Ecto.Adapters.SQL.restart_test_transaction(Spellit.Repo, [])
+      Ecto.Adapters.SQL.Sandbox.mode(Spellit.Repo, {:shared, self()})
     end
 
     {:ok, conn: Phoenix.ConnTest.conn()}

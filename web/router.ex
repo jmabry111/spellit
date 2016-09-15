@@ -24,7 +24,10 @@ defmodule Spellit.Router do
   end
 
   # Other scopes may use custom stacks.
-  # scope "/api", Spellit do
-  #   pipe_through :api
-  # end
+  scope "/api", Spellit do
+    pipe_through :api
+
+    resources "/words", WordApiController, only: [:index]
+    resources "/lists", ListApiController, only: [:index]
+  end
 end

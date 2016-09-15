@@ -1,7 +1,7 @@
 defmodule Ecto.Mixfile do
   use Mix.Project
 
-  @version "2.0.4"
+  @version "2.0.5"
   @adapters [:pg, :mysql]
 
   def project do
@@ -40,11 +40,11 @@ defmodule Ecto.Mixfile do
 
   defp deps do
     [{:poolboy, "~> 1.5"},
-     {:decimal, "~> 1.0"},
+     {:decimal, "~> 1.1.2 or ~> 1.2"},
 
      # Drivers
-     {:db_connection, "~> 1.0-rc.2", optional: true},
-     {:postgrex, "~> 0.11.2", optional: true},
+     {:db_connection, "~> 1.0-rc.4", optional: true},
+     {:postgrex, "~> 0.12.0", optional: true},
      {:mariaex, "~> 0.7.7", optional: true},
 
      # Optional

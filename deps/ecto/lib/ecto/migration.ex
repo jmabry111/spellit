@@ -130,21 +130,6 @@ defmodule Ecto.Migration do
   See the `index/3` function for more information on creating/dropping indexes
   concurrently.
 
-  ## Comments
-
-  Migrations where you create or alter a table support specifying table
-  and column comments, the same can be done when creating constraints
-  and indexes. At the moment there is support only for Postgres.
-
-      def up do
-        create index(:posts, [:name], comment: "Index Comment")
-        create constraint(:products, "price_must_be_positive", check: "price > 0", comment: "Index Comment")
-        create table(:weather, prefix: :north_america, comment: "Table Comment") do
-          add :city, :string, size: 40, comment: "Column Comment"
-          timestamps
-        end
-      end
-
   ## Schema Migrations table
 
   Version numbers of migrations will be saved in `schema_migrations` table.
@@ -167,8 +152,7 @@ defmodule Ecto.Migration do
               unique: false,
               concurrently: false,
               using: nil,
-              where: nil,
-              comment: nil
+              where: nil
 
     @type t :: %__MODULE__{
       table: atom,
@@ -178,8 +162,7 @@ defmodule Ecto.Migration do
       unique: boolean,
       concurrently: boolean,
       using: atom | String.t,
-      where: atom | String.t,
-      comment: String.t | nil
+      where: atom | String.t
     }
   end
 
@@ -189,8 +172,8 @@ defmodule Ecto.Migration do
 
     To define a table in a migration, see `Ecto.Migration.table/2`
     """
-    defstruct name: nil, prefix: nil, comment: nil, primary_key: true, engine: nil, options: nil
-    @type t :: %__MODULE__{name: atom, prefix: atom | nil, comment: String.t | nil, primary_key: boolean,
+    defstruct name: nil, prefix: nil, primary_key: true, engine: nil, options: nil
+    @type t :: %__MODULE__{name: atom, prefix: atom | nil, primary_key: boolean,
                            engine: atom, options: String.t}
   end
 
@@ -210,9 +193,9 @@ defmodule Ecto.Migration do
 
     To define a constraint in a migration, see `Ecto.Migration.constraint/3`
     """
-    defstruct name: nil, table: nil, check: nil, exclude: nil, prefix: nil, comment: nil
+    defstruct name: nil, table: nil, check: nil, exclude: nil, prefix: nil
     @type t :: %__MODULE__{name: atom, table: atom, prefix: atom | nil,
-                           check: String.t | nil, exclude: String.t | nil, comment: String.t | nil}
+                           check: String.t | nil, exclude: String.t | nil}
   end
 
   alias Ecto.Migration.Runner
@@ -498,19 +481,23 @@ defmodule Ecto.Migration do
       create index(:products, [:user_id], where: "price = 0", name: :free_products_index)
 
   """
-  def index(table, columns, opts \\ []) when is_atom(table) and is_list(columns) do
+  def index(table, columns, opts \\ [])
+  def index(table, columns, opts) when is_atom(table) and is_list(columns) do
     index = struct(%Index{table: table, columns: columns}, opts)
     %{index | name: index.name || default_index_name(index)}
   end
+  def index(table, column, opts) when is_atom(table) and is_atom(column), do: index(table, [column], opts)
 
   @doc """
   Shortcut for creating a unique index.
 
   See `index/3` for more information.
   """
-  def unique_index(table, columns, opts \\ []) when is_atom(table) and is_list(columns) do
+  def unique_index(table, columns, opts \\ [])
+  def unique_index(table, columns, opts) when is_atom(table) and is_list(columns) do
     index(table, columns, [unique: true] ++ opts)
   end
+  def unique_index(table, column, opts) when is_atom(table) and is_atom(column), do: unique_index(table, [column], opts)
 
   defp default_index_name(index) do
     [index.table, index.columns, "index"]
@@ -639,25 +626,28 @@ defmodule Ecto.Migration do
   @doc """
   Adds `:inserted_at` and `:updated_at` timestamps columns.
 
-  Those columns are of `:datetime` type and by default cannot
-  be null. `opts` can be given to customize the generated
-  fields.
+  Those columns are of `:datetime` or `:date` type,
+  and by default cannot be null.
+  `opts` can be given to customize the generated fields.
 
   ## Options
 
-    * `:inserted_at` -  the name of the column for insertion times
-    * `:updated_at` - the name of the column for update times
+    * `:inserted_at` -  the name of the column for insertion times, providing `false` disables column
+    * `:updated_at` - the name of the column for update times, providing `false` disables column
+    * `:type` - column type, one of `:datetime` (default) or `:date`
+
   """
   def timestamps(opts \\ []) do
     opts = Keyword.put_new(opts, :null, false)
 
-    inserted_at = opts[:inserted_at] || :inserted_at
-    updated_at = opts[:updated_at] || :updated_at
+    {type, opts} = Keyword.pop(opts, :type, :datetime)
+    unless type in [:datetime, :date], do: raise ArgumentError, "unknown :type value: #{inspect type}"
 
-    opts = Keyword.drop opts, [:inserted_at, :updated_at]
+    {inserted_at, opts} = Keyword.pop(opts, :inserted_at, :inserted_at)
+    {updated_at, opts} = Keyword.pop(opts, :updated_at, :updated_at)
 
-    add(inserted_at, :datetime, opts)
-    add(updated_at, :datetime, opts)
+    if inserted_at != false, do: add(inserted_at, type, opts)
+    if updated_at != false, do: add(updated_at, type, opts)
   end
 
   @doc """

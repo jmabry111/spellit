@@ -73,11 +73,15 @@ defmodule Postgrex do
 
   @doc """
   Runs an (extended) query and returns the result as `{:ok, %Postgrex.Result{}}`
-  or `{:error, %Postgrex.Error{}}` if there was an error. Parameters can be
-  set in the query as `$1` embedded in the query string. Parameters are given as
-  a list of elixir values. See the README for information on how Postgrex
+  or `{:error, %Postgrex.Error{}}` if there was a database error. Parameters can
+  be set in the query as `$1` embedded in the query string. Parameters are given
+  as a list of elixir values. See the README for information on how Postgrex
   encodes and decodes Elixir values by default. See `Postgrex.Result` for the
   result data.
+
+  This function may still raise an exception if there is an issue with types
+  (`ArgumentError`), connection (`DBConnection.ConnectionError`), ownership
+  (`DBConnection.OwnershipError`) or other error (`RuntimeError`).
 
   ## Options
 
@@ -109,20 +113,22 @@ defmodule Postgrex do
 
       Postgrex.query(conn, "COPY posts TO STDOUT", [])
 
-      Postgrex.query(conn, "COPY ints FROM STDIN", ["1\n2\n"], [copy_data: true])
+      Postgrex.query(conn, "COPY ints FROM STDIN", ["1\\n2\\n"], [copy_data: true])
   """
   @spec query(conn, iodata, list, Keyword.t) :: {:ok, Postgrex.Result.t} | {:error, Postgrex.Error.t}
   def query(conn, statement, params, opts \\ []) do
     query = %Query{name: "", statement: statement}
-    case DBConnection.prepare_execute(conn, query, params, defaults(opts)) do
+    opts =
+      opts
+      |> defaults()
+      |> Keyword.put(:function, :prepare_execute)
+    case DBConnection.prepare_execute(conn, query, params, opts) do
       {:ok, _, result} ->
         {:ok, result}
-      {:error, %ArgumentError{} = err} ->
-        raise err
-      {:error, %RuntimeError{} = err} ->
-        raise err
-      {:error, _} = error ->
+      {:error, %Postgrex.Error{}} = error ->
         error
+      {:error, err} ->
+        raise err
     end
   end
 
@@ -133,7 +139,11 @@ defmodule Postgrex do
   @spec query!(conn, iodata, list, Keyword.t) :: Postgrex.Result.t
   def query!(conn, statement, params, opts \\ []) do
     query = %Query{name: "", statement: statement}
-    {_, result} = DBConnection.prepare_execute!(conn, query, params, defaults(opts))
+    opts =
+      opts
+      |> defaults()
+      |> Keyword.put(:function, :prepare_execute)
+    {_, result} = DBConnection.prepare_execute!(conn, query, params, opts)
     result
   end
 
@@ -143,6 +153,10 @@ defmodule Postgrex do
   error. Parameters can be set in the query as `$1` embedded in the query
   string. To execute the query call `execute/4`. To close the prepared query
   call `close/3`. See `Postgrex.Query` for the query data.
+
+  This function may still raise an exception if there is an issue with types
+  (`ArgumentError`), connection (`DBConnection.ConnectionError`), ownership
+  (`DBConnection.OwnershipError`) or other error (`RuntimeError`).
 
   ## Options
 
@@ -167,13 +181,17 @@ defmodule Postgrex do
   @spec prepare(conn, iodata, iodata, Keyword.t) :: {:ok, Postgrex.Query.t} | {:error, Postgrex.Error.t}
   def prepare(conn, name, statement, opts \\ []) do
     query = %Query{name: name, statement: statement}
-    case DBConnection.prepare(conn, query, defaults(opts)) do
-      {:error, %ArgumentError{} = err} ->
+    opts =
+      opts
+      |> defaults()
+      |> Keyword.put(:function, :prepare)
+    case DBConnection.prepare(conn, query, opts) do
+      {:ok, _} = ok ->
+        ok
+      {:error, %Postgrex.Error{}} = error ->
+        error
+      {:error, err} ->
         raise err
-      {:error, %RuntimeError{} = err} ->
-        raise err
-      other ->
-        other
     end
   end
 
@@ -183,7 +201,11 @@ defmodule Postgrex do
   """
   @spec prepare!(conn, iodata, iodata, Keyword.t) :: Postgrex.Query.t
   def prepare!(conn, name, statement, opts \\ []) do
-    DBConnection.prepare!(conn, %Query{name: name, statement: statement}, defaults(opts))
+    opts =
+      opts
+      |> defaults()
+      |> Keyword.put(:function, :prepare)
+    DBConnection.prepare!(conn, %Query{name: name, statement: statement}, opts)
   end
 
   @doc """
@@ -193,6 +215,10 @@ defmodule Postgrex do
   See the README for information on how Postgrex encodes and decodes Elixir
   values by default. See `Postgrex.Query` for the query data and
   `Postgrex.Result` for the result data.
+
+  This function may still raise an exception if there is an issue with types
+  (`ArgumentError`), connection (`DBConnection.ConnectionError`), ownership
+  (`DBConnection.OwnershipError`) or other error (`RuntimeError`).
 
   ## Options
 
@@ -219,12 +245,12 @@ defmodule Postgrex do
     {:ok, Postgrex.Result.t} | {:error, Postgrex.Error.t}
   def execute(conn, query, params, opts \\ []) do
     case DBConnection.execute(conn, query, params, defaults(opts)) do
-      {:error, %ArgumentError{} = err} ->
+      {:ok, _} = ok ->
+        ok
+      {:error, %Postgrex.Error{}} = error ->
+        error
+      {:error, err} ->
         raise err
-      {:error, %RuntimeError{} = err} ->
-        raise err
-      other ->
-        other
     end
   end
 
@@ -242,6 +268,10 @@ defmodule Postgrex do
   `{:error, %Postgrex.Error{}}` if there was an error. Closing a query releases
   any resources held by postgresql for a prepared query with that name. See
   `Postgrex.Query` for the query data.
+
+  This function may still raise an exception if there is an issue with types
+  (`ArgumentError`), connection (`DBConnection.ConnectionError`), ownership
+  (`DBConnection.OwnershipError`) or other error (`RuntimeError`).
 
   ## Options
 
@@ -264,12 +294,10 @@ defmodule Postgrex do
     case DBConnection.close(conn, query, defaults(opts)) do
       {:ok, _} ->
         :ok
-      {:error, %ArgumentError{} = err} ->
-        raise err
-      {:error, %RuntimeError{} = err} ->
-        raise err
-      {:error, _} = error ->
+      {:error, %Postgrex.Error{}} = error ->
         error
+      {:error, err} ->
+        raise err
     end
   end
 
@@ -399,13 +427,14 @@ defmodule Postgrex do
   ## Examples
 
       Postgrex.transaction(pid, fn(conn) ->
-        query = Postgrex.prepare!(conn, "COPY posts TO STDOUT")
+        query = Postgrex.prepare!(conn, "", "COPY posts TO STDOUT")
         stream = Postgrex.stream(conn, query, [])
-        Enum.into(stream, File.stream!("posts"))
+        result_to_iodata = fn(%Postgrex.Result{rows: rows}) -> rows end
+        Enum.into(stream, File.stream!("posts"), result_to_iodata)
       end)
 
       Postgrex.transaction(pid, fn(conn) ->
-        query = Postgrex.prepare!(conn, "COPY posts FROM STDIN", [copy_data: true])
+        query = Postgrex.prepare!(conn, "", "COPY posts FROM STDIN", [copy_data: true])
         stream = Postgrex.stream(conn, query, [])
         Enum.into(File.stream!("posts"), stream)
       end)

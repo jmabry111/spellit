@@ -68,6 +68,13 @@ defmodule Ecto.Adapters.SQL do
 
       @doc false
       def execute(repo, meta, query, params, process, opts) do
+        opts =
+          case Map.fetch(meta, :sources) do
+            {:ok, tuple} when tuple_size(elem(tuple, 0)) == 2 ->
+              Keyword.put(opts, :source, tuple |> elem(0) |> elem(0))
+            _ ->
+              opts
+          end
         Ecto.Adapters.SQL.execute(repo, meta, query, params, process, opts)
       end
 
@@ -156,7 +163,7 @@ defmodule Ecto.Adapters.SQL do
     |> Ecto.Query.Planner.returning(kind == :all)
     |> Ecto.Query.Planner.query(kind, repo, adapter)
     |> case do
-      {_meta, {:cached, {_id, cached}}, params} ->
+      {_meta, {:cached, _reset, {_id, cached}}, params} ->
         {String.Chars.to_string(cached), params}
       {_meta, {:cache, _update, {_id, prepared}}, params} ->
         {prepared, params}
@@ -390,16 +397,25 @@ defmodule Ecto.Adapters.SQL do
     execute_and_cache(repo, id, update, prepared, params, mapper, opts)
   end
 
-  def execute(repo, _meta, {_, {_id, prepared_or_cached}}, params, nil, opts) do
+  def execute(repo, _meta, {:cached, reset, {id, cached}}, params, nil, opts) do
+    execute_or_reset(repo, id, reset, cached, params, nil, opts)
+  end
+
+ def execute(repo, %{fields: fields}, {:cached, reset, {id, cached}}, params, process, opts) do
+    mapper = &process_row(&1, process, fields)
+    execute_or_reset(repo, id, reset, cached, params, mapper, opts)
+  end
+
+  def execute(repo, _meta, {:nocache, {_id, prepared}}, params, nil, opts) do
     %{rows: rows, num_rows: num} =
-      sql_call!(repo, :execute, [prepared_or_cached], params, nil, opts)
+      sql_call!(repo, :execute, [prepared], params, nil, opts)
     {num, rows}
   end
 
-  def execute(repo, %{fields: fields}, {_, {_id, prepared_or_cached}}, params, process, opts) do
+  def execute(repo, %{fields: fields}, {:nocache, {_id, prepared}}, params, process, opts) do
     mapper = &process_row(&1, process, fields)
     %{rows: rows, num_rows: num} =
-      sql_call!(repo, :execute, [prepared_or_cached], params, mapper, opts)
+      sql_call!(repo, :execute, [prepared], params, mapper, opts)
     {num, rows}
   end
 
@@ -407,9 +423,21 @@ defmodule Ecto.Adapters.SQL do
     name = "ecto_" <> Integer.to_string(id)
     case sql_call(repo, :prepare_execute, [name, prepared], params, mapper, opts) do
       {:ok, query, %{num_rows: num, rows: rows}} ->
-        update.({0, query})
+        update.({id, query})
         {num, rows}
       {:error, err} ->
+        raise err
+    end
+  end
+
+  defp execute_or_reset(repo, id, reset, cached, params, mapper, opts) do
+    case sql_call(repo, :execute, [cached], params, mapper, opts) do
+      {:ok, %{num_rows: num, rows: rows}} ->
+        {num, rows}
+      {:error, err} ->
+        raise err
+      {:reset, err} ->
+        reset.({id, String.Chars.to_string(cached)})
         raise err
     end
   end
@@ -504,17 +532,19 @@ defmodule Ecto.Adapters.SQL do
 
   defp with_log(repo, params, opts) do
     case Keyword.pop(opts, :log, true) do
-      {true, opts}  -> [log: &log(repo, params, &1)] ++ opts
+      {true, opts}  -> [log: &log(repo, params, &1, opts)] ++ opts
       {false, opts} -> opts
     end
   end
 
-  defp log(repo, params, entry) do
+  defp log(repo, params, entry, opts) do
     %{connection_time: query_time, decode_time: decode_time,
       pool_time: queue_time, result: result, query: query} = entry
+    source = Keyword.get(opts, :source)
     repo.__log__(%Ecto.LogEntry{query_time: query_time, decode_time: decode_time,
                                 queue_time: queue_time, result: log_result(result),
-                                params: params, query: String.Chars.to_string(query)})
+                                params: params, query: String.Chars.to_string(query),
+                                ansi_color: sql_color(query), source: source})
   end
 
   defp log_result({:ok, _query, res}), do: {:ok, res}
@@ -537,4 +567,14 @@ defmodule Ecto.Adapters.SQL do
   end
 
   defp key(pool), do: {__MODULE__, pool}
+
+  defp sql_color("SELECT" <> _), do: :cyan
+  defp sql_color("ROLLBACK" <> _), do: :red
+  defp sql_color("LOCK" <> _), do: :white
+  defp sql_color("INSERT" <> _), do: :green
+  defp sql_color("UPDATE" <> _), do: :yellow
+  defp sql_color("DELETE" <> _), do: :red
+  defp sql_color("begin" <> _), do: :magenta
+  defp sql_color("commit" <> _), do: :magenta
+  defp sql_color(_), do: nil
 end

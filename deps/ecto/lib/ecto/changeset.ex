@@ -75,12 +75,12 @@ defmodule Ecto.Changeset do
   ## Empty values
 
   Many times, the data given on cast needs to be further pruned, specially
-  regarding to empty values. For example, if you are gathering data to be
-  cast from the command line or through an HTML form or any other text
-  based format, it is likely those means cannot express nil values. For
+  regarding empty values. For example, if you are gathering data to be
+  cast from the command line or through an HTML form or any other text-based
+  format, it is likely those means cannot express nil values. For
   those reasons, changesets include the concept of empty values, which are
   values that will be automatically converted to nil on `cast/3`. Those
-  values are stored in the changeset `empty_values` field and defaults to
+  values are stored in the changeset `empty_values` field and default to
   `[""]`.
 
   ## The Ecto.Changeset struct
@@ -116,11 +116,13 @@ defmodule Ecto.Changeset do
       changeset, and it will be marked as invalid,
     * `:nilify` - sets owner reference column to `nil` (available only for
       associations),
+    * `:update` - updates the association, available only for has_one and belongs_to.
+      This option will update all the fields given to the changeset including the id
+      for the association.
     * `:delete` - removes the association or related data from the database.
       This option has to be used carefully. You should consider adding a
       separate boolean virtual field to the changeset function that will allow you
       to manually mark it for deletion, as in the example below:
-
           defmodule Comment do
             use Ecto.Schema
             import Ecto.Changeset
@@ -380,13 +382,18 @@ defmodule Ecto.Changeset do
        when is_list(required) and is_list(optional) do
     params = convert_params(params)
 
+    defaults = case data do
+      %{__struct__: struct} -> struct.__struct__()
+      %{} -> %{}
+    end
+
     {_, {changes, errors, valid?}} =
       Enum.map_reduce(optional, {changes, [], true},
-                      &process_param(&1, :optional, params, types, data, empty_values, &2))
+                      &process_param(&1, :optional, params, types, data, empty_values, defaults, &2))
 
     {required, {changes, errors, valid?}} =
       Enum.map_reduce(required, {changes, errors, valid?},
-                      &process_param(&1, :required, params, types, data, empty_values, &2))
+                      &process_param(&1, :required, params, types, data, empty_values, defaults, &2))
 
     %Changeset{params: params, data: data, valid?: valid?,
                errors: Enum.reverse(errors), changes: changes, required: required,
@@ -403,13 +410,17 @@ defmodule Ecto.Changeset do
   defp process_empty_fields(key, _types) when is_atom(key),
     do: key
 
-  defp process_param(key, kind, params, types, data, empty_values, {changes, errors, valid?}) do
+  defp process_param(key, kind, params, types, data, empty_values, defaults, {changes, errors, valid?}) do
     {key, param_key} = cast_key(key)
     type = type!(types, key)
-    current = Map.get(data, key)
+    current =
+      case Map.fetch(changes, key) do
+        {:ok, value} -> value
+        :error -> Map.get(data, key)
+      end
 
     {key,
-     case cast_field(param_key, type, params, current, empty_values, valid?) do
+     case cast_field(key, param_key, type, params, current, empty_values, defaults, valid?) do
        {:ok, nil, valid?} when kind == :required ->
          {errors, valid?} = error_on_nil(kind, key, Map.get(changes, key), errors, valid?)
          {changes, errors, valid?}
@@ -446,14 +457,17 @@ defmodule Ecto.Changeset do
   defp cast_key(key) when is_atom(key),
     do: {key, Atom.to_string(key)}
 
-  defp cast_field(param_key, type, params, current, empty_values, valid?) do
+  defp cast_field(key, param_key, type, params, current, empty_values, defaults, valid?) do
     case Map.fetch(params, param_key) do
       {:ok, value} ->
-        value = if value in empty_values, do: nil, else: value
+        value = if value in empty_values, do: Map.get(defaults, key), else: value
         case Ecto.Type.cast(type, value) do
-          {:ok, ^current} -> {:missing, current}
-          {:ok, value} -> {:ok, value, valid?}
-          :error -> :invalid
+          {:ok, ^current} ->
+            {:missing, current}
+          {:ok, value} ->
+            {:ok, value, valid?}
+          :error ->
+            :invalid
         end
       :error ->
         {:missing, current}
@@ -682,7 +696,7 @@ defmodule Ecto.Changeset do
   then falls back on the data, finally returning `:error` if
   no value is available.
 
-  For relations, this functions will return the changeset
+  For relations, these functions will return the changeset
   original data with changes applied. To retrieve raw changesets,
   please use `fetch_change/2`.
 
@@ -719,7 +733,7 @@ defmodule Ecto.Changeset do
   then falls back on the data, finally returning `default` if
   no value is available.
 
-  For relations this functions will return the changeset data
+  For relations, these functions will return the changeset data
   with changes applied. To retrieve raw changesets, please use `get_change/3`.
 
       iex> post = %Post{title: "A title", body: "My body is a cage"}
@@ -874,7 +888,7 @@ defmodule Ecto.Changeset do
   end
 
   @doc """
-  Puts the given association as change in the changeset.
+  Puts the given association as a change in the changeset.
 
   The given value may either be the association struct, a
   changeset for the given association or a map or keyword
@@ -892,7 +906,7 @@ defmodule Ecto.Changeset do
   end
 
   @doc """
-  Puts the given embed as change in the changeset.
+  Puts the given embed as a change in the changeset.
 
   The given value may either be the embed struct, a
   changeset for the given embed or a map or keyword
@@ -1013,6 +1027,10 @@ defmodule Ecto.Changeset do
   @doc """
   Adds an error to the changeset.
 
+  An additional keyword list `keys` can be passed to provide additional
+  contextual information for the error. This is useful when using
+  `traverse_errors`
+
   ## Examples
 
       iex> changeset = change(%Post{}, %{title: ""})
@@ -1022,6 +1040,12 @@ defmodule Ecto.Changeset do
       iex> changeset.valid?
       false
 
+      iex> changeset = change(%Post{}, %{title: ""})
+      iex> changeset = add_error(changeset, :title, "empty", additional: "info")
+      iex> changeset.errors
+      [title: {"empty", [additional: "info"]}]
+      iex> changeset.valid?
+      false
   """
   @spec add_error(t, atom, String.t, Keyword.t) :: t
   def add_error(%{errors: errors} = changeset, key, message, keys \\ []) when is_binary(message) do
@@ -1347,7 +1371,7 @@ defmodule Ecto.Changeset do
   end
 
   defp validate_number(field, %Decimal{} = value, message, spec_key, _spec_function, target_value) do
-    result = Decimal.compare(value, target_value)
+    result = Decimal.cmp(value, Decimal.new(target_value))
     case decimal_compare(result, spec_key) do
       true  -> nil
       false -> [{field, {message, number: target_value}}]
@@ -1361,25 +1385,10 @@ defmodule Ecto.Changeset do
     end
   end
 
-  defp decimal_compare(result, :less_than) do
-    Decimal.equal?(result, Decimal.new(-1))
-  end
-
-  defp decimal_compare(result, :greater_than) do
-    Decimal.equal?(result, Decimal.new(1))
-  end
-
-  defp decimal_compare(result, :equal_to) do
-    Decimal.equal?(result, Decimal.new(0))
-  end
-
-  defp decimal_compare(result, :less_than_or_equal_to) do
-    decimal_compare(result, :less_than) or decimal_compare(result, :equal_to)
-  end
-
-  defp decimal_compare(result, :greater_than_or_equal_to) do
-    decimal_compare(result, :greater_than) or decimal_compare(result, :equal_to)
-  end
+  defp decimal_compare(:lt, spec), do: spec in [:less_than, :less_than_or_equal_to]
+  defp decimal_compare(:gt, spec), do: spec in [:greater_than, :greater_than_or_equal_to]
+  defp decimal_compare(:eq, spec), do: spec in [:equal_to, :less_than_or_equal_to, :greater_than_or_equal_to]
+  defp decimal_compare(:qNaN, _spec), do: false
 
   @doc """
   Validates that the given field matches the confirmation
@@ -1579,8 +1588,8 @@ defmodule Ecto.Changeset do
         end)
       end
 
-  We retrieve the repo and from the comment changeset it self, and use
-  update_all to update the counter cache in one query. Finally the original
+  We retrieve the repo and from the comment changeset itself, and use
+  update_all to update the counter cache in one query. Finally, the original
   changeset must be returned.
   """
   @spec prepare_changes(t, (t -> t)) :: t
@@ -1603,7 +1612,7 @@ defmodule Ecto.Changeset do
       Defaults to "is invalid"
     * `:name` - the name of the constraint. Required.
     * `:match` - how the changeset constraint name it matched against the
-      repo constraint, may be `:exact` or `:suffix`. Default is `:exact`.
+      repo constraint, may be `:exact` or `:suffix`. Defaults to `:exact`.
       `:suffix` matches any repo constraint which `ends_with?` `:name`
        to this changeset constraint.
 
@@ -1622,7 +1631,7 @@ defmodule Ecto.Changeset do
   if the unique constraint has been violated or not and, if so,
   Ecto converts it into a changeset error.
 
-  In order to use the uniqueness constraint the first step is
+  In order to use the uniqueness constraint, the first step is
   to define the unique index in a migration:
 
       create unique_index(:users, [:email])
@@ -1645,10 +1654,10 @@ defmodule Ecto.Changeset do
     * `:message` - the message in case the constraint check fails,
       defaults to "has already been taken"
     * `:name` - the constraint name. By default, the constraint
-      name is inflected from the table + field. May be required
+      name is inferred from the table + field. May be required
       explicitly for complex cases
     * `:match` - how the changeset constraint name it matched against the
-      repo constraint, may be `:exact` or `:suffix`. Default is `:exact`.
+      repo constraint, may be `:exact` or `:suffix`. Defaults to `:exact`.
       `:suffix` matches any repo constraint which `ends_with?` `:name`
        to this changeset constraint.
 
@@ -1736,7 +1745,7 @@ defmodule Ecto.Changeset do
     * `:message` - the message in case the constraint check fails,
       defaults to "does not exist"
     * `:name` - the constraint name. By default, the constraint
-      name is inflected from the table + field. May be required
+      name is inferred from the table + field. May be required
       explicitly for complex cases
 
   """
@@ -1751,7 +1760,7 @@ defmodule Ecto.Changeset do
   Checks the associated field exists.
 
   This is similar to `foreign_key_constraint/3` except that the
-  field is inflected from the association definition. This is useful
+  field is inferred from the association definition. This is useful
   to guarantee that a child will only be created if the parent exists
   in the database too. Therefore, it only applies to `belongs_to`
   associations.
@@ -1777,7 +1786,7 @@ defmodule Ecto.Changeset do
     * `:message` - the message in case the constraint check fails,
       defaults to "does not exist"
     * `:name` - the constraint name. By default, the constraint
-      name is inflected from the table + association field.
+      name is inferred from the table + association field.
       May be required explicitly for complex cases
   """
   @spec assoc_constraint(t, atom, Keyword.t) :: t | no_return
@@ -1799,7 +1808,7 @@ defmodule Ecto.Changeset do
   Checks the associated field does not exist.
 
   This is similar to `foreign_key_constraint/3` except that the
-  field is inflected from the association definition. This is useful
+  field is inferred from the association definition. This is useful
   to guarantee that parent can only be deleted (or have its primary
   key changed) if no child exists in the database. Therefore, it only
   applies to `has_*` associations.
@@ -1826,7 +1835,7 @@ defmodule Ecto.Changeset do
       defaults to "is still associated to this entry" (for has_one)
       and "are still associated to this entry" (for has_many)
     * `:name` - the constraint name. By default, the constraint
-      name is inflected from the association table + association
+      name is inferred from the association table + association
       field. May be required explicitly for complex cases
   """
   @spec no_assoc_constraint(t, atom, Keyword.t) :: t | no_return
@@ -1846,7 +1855,7 @@ defmodule Ecto.Changeset do
   end
 
   @doc """
-  Checks for a exclusion constraint in the given field.
+  Checks for an exclusion constraint in the given field.
 
   The exclusion constraint works by relying on the database to check
   if the exclusion constraint has been violated or not and, if so,
@@ -1857,10 +1866,10 @@ defmodule Ecto.Changeset do
     * `:message` - the message in case the constraint check fails,
       defaults to "violates an exclusion constraint"
     * `:name` - the constraint name. By default, the constraint
-      name is inflected from the table + field. May be required
+      name is inferred from the table + field. May be required
       explicitly for complex cases
     * `:match` - how the changeset constraint name it matched against the
-      repo constraint, may be `:exact` or `:suffix`. Default is `:exact`.
+      repo constraint, may be `:exact` or `:suffix`. Defaults to `:exact`.
       `:suffix` matches any repo constraint which `ends_with?` `:name`
        to this changeset constraint.
 
@@ -1894,7 +1903,7 @@ defmodule Ecto.Changeset do
   end
 
   @doc ~S"""
-  Traverses changeset errors and applies function to error messages.
+  Traverses changeset errors and applies the given function to error messages.
 
   This function is particularly useful when associations and embeds
   are cast in the changeset as it will traverse all associations and
@@ -1916,7 +1925,8 @@ defmodule Ecto.Changeset do
       %{title: ["should be at least 3 characters"]}
   """
   @spec traverse_errors(t, (error -> String.t)) :: %{atom => [String.t]}
-  def traverse_errors(%Changeset{errors: errors, changes: changes, types: types}, msg_func) do
+  def traverse_errors(%Changeset{errors: errors, changes: changes, types: types}, msg_func)
+      when is_function(msg_func, 1) do
     errors
     |> Enum.reverse()
     |> merge_error_keys(msg_func)

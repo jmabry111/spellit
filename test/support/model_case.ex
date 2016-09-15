@@ -26,8 +26,10 @@ defmodule Spellit.ModelCase do
   end
 
   setup tags do
+    :ok = Ecto.Adapters.SQL.Sandbox.checkout(Spellit.Repo)
+
     unless tags[:async] do
-      Ecto.Adapters.SQL.restart_test_transaction(Spellit.Repo, [])
+      Ecto.Adapters.SQL.Sandbox.mode(Spellit.Repo, {:shared, self()})
     end
 
     :ok

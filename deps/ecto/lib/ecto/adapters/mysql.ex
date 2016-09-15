@@ -10,7 +10,9 @@ defmodule Ecto.Adapters.MySQL do
 
   MySQL options split in different categories described
   below. All options should be given via the repository
-  configuration.
+  configuration. These options are also passed to the module
+  specified in the `:pool` option, so check that module's
+  documentation for more options.
 
   ### Compile time options
 
@@ -18,7 +20,7 @@ defmodule Ecto.Adapters.MySQL do
   recompilation in order to make an effect.
 
     * `:adapter` - The adapter name, in this case, `Ecto.Adapters.MySQL`
-    * `:pool` - The connection pool module, defaults to `Ecto.Pools.Poolboy`
+    * `:pool` - The connection pool module, defaults to `DBConnection.Poolboy`
     * `:pool_timeout` - The default timeout to use on pool calls, defaults to `5000`
     * `:timeout` - The default timeout to use on queries, defaults to `15000`
 
